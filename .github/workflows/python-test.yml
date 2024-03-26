@@ -1,0 +1,59 @@
+name: Python Test and Package
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test-and-package:
+    runs-on: ubuntu-latest
+    
+    env:
+      PYTHON_VERSION: '3.x'
+      REQUIREMENTS_FILE: 'requirements.txt'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Create virtual environment
+      run: |
+        python -m venv venv
+        source venv/bin/activate
+      
+    - name: Install dependencies
+      run: |
+        pip install -r ${{ env.REQUIREMENTS_FILE }}
+
+    - name: Cache dependencies
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+
+    - name: Run tests
+      run: |
+        python -m unittest discover -s my_package/tests -p 'test_*.py'
+        
+    - name: Lint with pylint
+      run: |
+        pip install pylint
+        pylint my_package/main.py
+
+    - name: Build package
+      run: |
+        python setup.py sdist bdist_wheel
+        mkdir artifacts
+        mv dist/* artifacts/
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: my_flask_app_package
+        path: artifacts/
